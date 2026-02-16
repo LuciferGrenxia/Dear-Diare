@@ -59,12 +59,20 @@
     <style>
         :root { --vox: #00E5FF; --ala: #ff3333; --jae: #FFB6C1; --bg: #050508; }
         body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; }
+        
         .f-vox { font-family: 'Galmuri11', sans-serif !important; }
         .f-ala { font-family: 'ChosunGs', serif !important; }
         .f-jae { font-family: 'Gamja Flower', cursive !important; }
+
         .vox-mode { color: var(--vox); font-family: 'Galmuri11', sans-serif; }
         .alastor-mode { color: var(--ala); font-family: 'ChosunGs', serif; }
         .jaehee-mode { color: var(--jae); font-family: 'Gamja Flower', cursive; }
+
+        /* 게시물 개별 고정 스타일 */
+        .vox-item { color: var(--vox) !important; border-left-color: var(--vox) !important; font-family: 'Galmuri11', sans-serif !important; }
+        .ala-item { color: var(--ala) !important; border-left-color: var(--ala) !important; font-family: 'ChosunGs', serif !important; }
+        .jae-item { color: var(--jae) !important; border-left-color: var(--jae) !important; font-family: 'Gamja Flower', cursive !important; }
+
         #header { border: 2px solid var(--vox); padding: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.5); text-align: center; }
         .alastor-mode #header { border-color: var(--ala); }
         .jaehee-mode #header { border-color: var(--jae); }
@@ -76,7 +84,6 @@
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
         .smart-priv-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: 1px solid currentColor; color: inherit; font-size: 0.6rem; cursor: pointer; padding: 3px 8px; font-family: inherit; }
         
-        /* 비밀글 블러 처리 수정 */
         .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; outline: none; transition: 0.3s; }
         .locked { filter: blur(10px); opacity: 0.5; pointer-events: none; user-select: none; }
 
@@ -160,7 +167,7 @@
                 .filter(d => yearF === 'ALL' || d.date.includes(yearF))
                 .filter(d => monthF === 'ALL' || d.date.split('.')[1]?.trim() === monthF)
                 .map((d) => `
-                <div class="entry ${d.mode === 'ALASTOR' ? 'ala-item f-ala' : (d.mode === 'JAEHEE' ? 'jae-item f-jae' : 'vox-item f-vox')}" id="diary-${d.id}">
+                <div class="entry ${getEntryClass(d.mode)}" id="diary-${d.id}">
                     <button class="smart-priv-btn" onclick="handlePriv('${d.id}')">${d.isPriv ? 'Unlock' : 'Priv'}</button>
                     <div class="author-info">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
                     <div style="font-size:0.7rem; opacity:0.6; margin-bottom:5px;">${d.mode} CH | ${d.date}</div>
@@ -222,8 +229,11 @@
             `).join('');
         }
 
-        function getModeClass(m) { return m === 'ALASTOR' ? 'ala-item' : (m === 'JAEHEE' ? 'jae-item' : 'vox-item'); }
-        function getFontClass(m) { return m === 'ALASTOR' ? 'f-ala' : (m === 'JAEHEE' ? 'f-jae' : 'f-vox'); }
+        function getEntryClass(m) {
+            if(m === 'ALASTOR') return 'ala-item';
+            if(m === 'JAEHEE') return 'jae-item';
+            return 'vox-item';
+        }
 
         function openPrompt(type, id, ci, ri, rri) {
             const d = window.diaries.find(x => x.id === id);
