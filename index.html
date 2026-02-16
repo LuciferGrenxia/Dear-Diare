@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>V-Radio Jaehee Edition</title>
+    <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@1.0/ChosunGs.css">
     <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap" rel="stylesheet">
@@ -13,7 +14,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 재희님이 보내준 google-services.json 기반 설정
         const firebaseConfig = {
             apiKey: "AIzaSyBULHjBCarfHTnQ9zFb5DzYXOwtzhjUp7I",
             authDomain: "dear-diare.firebaseapp.com",
@@ -27,64 +27,89 @@
         const db = getFirestore(app);
         const diaryCol = collection(db, "diaries");
 
+        // 전역 변수 설정
         window.db = db;
         window.diaryCol = diaryCol;
-        
+
+        // 실시간 데이터 로드
         const q = query(diaryCol, orderBy("serverTimestamp", "desc"));
         onSnapshot(q, (snapshot) => {
             window.diaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             render();
         });
 
+        // 전송 기능 (Transmit)
         window.postDiary = async () => {
             const input = document.getElementById('diary-input');
+            const music = document.getElementById('music-input');
+            const author = document.getElementById('post-author');
+            const priv = document.getElementById('post-priv');
+            
             if(!input.value.trim()) return;
+
             const mode = document.body.className.includes('alastor') ? 'ALASTOR' : (document.body.className.includes('jaehee') ? 'JAEHEE' : 'VOX');
-            await addDoc(diaryCol, {
-                content: input.value,
-                music: document.getElementById('music-input').value,
-                author: document.getElementById('post-author').value,
-                date: new Date().toLocaleString('ko-KR'),
-                serverTimestamp: Date.now(),
-                mode: mode,
-                isPriv: document.getElementById('post-priv').checked,
-                comments: []
-            });
-            input.value = '';
-            document.getElementById('post-priv').checked = false;
+            
+            try {
+                await addDoc(diaryCol, {
+                    content: input.value,
+                    music: music.value,
+                    author: author.value,
+                    date: new Date().toLocaleString('ko-KR'),
+                    serverTimestamp: Date.now(),
+                    mode: mode,
+                    isPriv: priv.checked,
+                    comments: []
+                });
+                input.value = '';
+                music.value = '';
+                priv.checked = false;
+            } catch (e) {
+                alert("전송 실패: " + e.message);
+            }
         };
 
+        // 삭제 기능
         window.deleteEntry = async (id) => {
-            if(confirm("기록을 파기하시겠습니까?")) await deleteDoc(doc(db, "diaries", id));
+            if(confirm("이 기록을 영구 파기하시겠습니까?")) {
+                await deleteDoc(doc(db, "diaries", id));
+            }
         };
     </script>
 
     <style>
         :root { --vox: #00E5FF; --ala: #ff3333; --jae: #FFB6C1; --bg: #050508; }
-        body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; }
+        body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; font-family: 'Galmuri11', sans-serif; }
+        
         .f-vox { font-family: 'Galmuri11', sans-serif !important; }
         .f-ala { font-family: 'ChosunGs', serif !important; }
         .f-jae { font-family: 'Gamja Flower', cursive !important; }
-        .vox-mode { color: var(--vox); font-family: 'Galmuri11', sans-serif; }
-        .alastor-mode { color: var(--ala); font-family: 'ChosunGs', serif; }
-        .jaehee-mode { color: var(--jae); font-family: 'Gamja Flower', cursive; }
+
+        .vox-mode { color: var(--vox); }
+        .alastor-mode { color: var(--ala); }
+        .jaehee-mode { color: var(--jae); }
+
         #header { border: 2px solid var(--vox); padding: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.5); text-align: center; }
         .alastor-mode #header { border-color: var(--ala); }
         .jaehee-mode #header { border-color: var(--jae); }
+        
         .input-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
-        .filter-row { display: flex; gap: 4px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
-        select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 8px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
-        .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
+        select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 12px; font-family: inherit; font-size: 0.9rem; outline: none; width: 100%; box-sizing: border-box; }
+        
+        .main-btn { height: 50px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
+        .main-btn:active { transform: scale(0.98); opacity: 0.8; }
+
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
-        .vox-item { color: var(--vox); border-left-color: var(--vox); }
-        .ala-item { color: var(--ala); border-left-color: var(--ala); }
-        .jae-item { color: var(--jae); border-left-color: var(--jae); }
-        .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; }
+        .vox-item { border-left-color: var(--vox); color: var(--vox); }
+        .ala-item { border-left-color: var(--ala); color: var(--ala); }
+        .jae-item { border-left-color: var(--jae); color: var(--jae); }
+        
+        .entry-content { font-size: 1.1rem; line-height: 1.6; margin: 10px 0; word-break: keep-all; }
         .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
-        .action-bar { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
-        .btn-row { display: flex; gap: 5px; }
-        .icon-btn { flex: 1; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-family: inherit; font-size: 0.65rem; font-weight: bold; }
-        #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+
+        .action-bar { display: flex; gap: 5px; margin-top: 10px; }
+        .icon-btn { flex: 1; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.7rem; font-family: inherit; }
+
+        #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
         .capturing .action-bar, .capturing button { display: none !important; }
     </style>
 </head>
@@ -96,14 +121,16 @@
     </div>
 
     <div class="input-section">
-        <div class="filter-row">
-            <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
-        </div>
+        <select id="post-author">
+            <option value="Jaehee">Jaehee</option>
+            <option value="Vox">Vox</option>
+            <option value="Alaster">Alaster</option>
+        </select>
         <input type="text" id="music-input" placeholder="Music: Artist - Title">
-        <div style="display:flex; align-items:center; gap:4px; font-size:0.7rem; color:#888;">
-            <input type="checkbox" id="post-priv" style="width:14px; height:14px;"> Private Post
-        </div>
-        <textarea id="diary-input" placeholder="Data input..."></textarea>
+        <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <input type="checkbox" id="post-priv" style="width: 15px; height: 15px;"> Private Post
+        </label>
+        <textarea id="diary-input" placeholder="Data input..." rows="4"></textarea>
         <button class="main-btn" onclick="postDiary()">TRANSMIT</button>
         <button class="main-btn" onclick="toggleTheme()">SWITCH MODE</button>
     </div>
@@ -112,24 +139,23 @@
 
     <div id="preview-modal">
         <img id="preview-img" style="max-width: 100%; border: 1px solid currentColor; margin-bottom: 20px;">
-        <button class="main-btn" onclick="closeModal()">CLOSE</button>
+        <button class="main-btn" onclick="closeModal()" style="width: 150px;">CLOSE</button>
     </div>
 
     <script>
         function render() {
             const feed = document.getElementById('feed');
             if(!window.diaries) return;
+
             feed.innerHTML = window.diaries.map((d) => `
                 <div class="entry ${getModeClass(d.mode)} ${getFontClass(d.mode)}" id="diary-${d.id}">
-                    <div class="author-info">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
-                    <div style="font-size:0.7rem; opacity:0.6; margin-bottom:5px;">${d.mode} CH | ${d.date}</div>
-                    ${d.music ? `<div style="font-size:0.7rem; margin-bottom:8px;">♪ ${d.music}</div>` : ''}
-                    <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Private content.' : d.content}</div>
+                    <div style="font-size:0.75rem; font-weight:bold;">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
+                    <div style="font-size:0.7rem; opacity:0.6; margin-bottom:8px;">${d.mode} CH | ${d.date}</div>
+                    ${d.music ? `<div style="font-size:0.8rem; margin-bottom:10px;">♪ ${d.music}</div>` : ''}
+                    <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'This content is encrypted.' : d.content}</div>
                     <div class="action-bar">
-                        <div class="btn-row">
-                            <button class="icon-btn" onclick="deleteEntry('${d.id}')">Delete</button>
-                            <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
-                        </div>
+                        <button class="icon-btn" onclick="deleteEntry('${d.id}')">Delete</button>
+                        <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
                     </div>
                 </div>
             `).join('');
@@ -137,7 +163,7 @@
 
         function getModeClass(m) { return m === 'ALASTOR' ? 'ala-item' : (m === 'JAEHEE' ? 'jae-item' : 'vox-item'); }
         function getFontClass(m) { return m === 'ALASTOR' ? 'f-ala' : (m === 'JAEHEE' ? 'f-jae' : 'f-vox'); }
-        
+
         window.toggleTheme = () => {
             const b = document.body;
             const h = (st, m, s) => { 
@@ -145,9 +171,16 @@
                 document.getElementById('title-main').innerText = m;
                 document.getElementById('title-sub').innerText = s;
             };
-            if(b.classList.contains('vox-mode')) { b.className = 'alastor-mode'; h("A pleasure to meet you", "Alastor", "THE RADIO DEMON STATION"); }
-            else if(b.classList.contains('alastor-mode')) { b.className = 'jaehee-mode'; h("Dear Diary,", "Jaehee", "PRIVATE CHANNEL"); }
-            else { b.className = 'vox-mode'; h("Ratings are through the roof", "Vox", "BROADCAST NETWORK"); }
+            if(b.classList.contains('vox-mode')) { 
+                b.className = 'alastor-mode'; 
+                h("A pleasure to meet you", "Alastor", "THE RADIO DEMON STATION"); 
+            } else if(b.classList.contains('alastor-mode')) { 
+                b.className = 'jaehee-mode'; 
+                h("Dear Diary,", "Jaehee", "PRIVATE CHANNEL"); 
+            } else { 
+                b.className = 'vox-mode'; 
+                h("Ratings are through the roof", "Vox", "BROADCAST NETWORK"); 
+            }
             render();
         };
 
