@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Radio Jaehee Edition</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-04@1.0/ChosunGs.css">
+    <link href="https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 재희님이 보내준 google-services.json 기반 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBULHjBCarfHTnQ9zFb5DzYXOwtzhjUp7I",
+            authDomain: "dear-diare.firebaseapp.com",
+            projectId: "dear-diare",
+            storageBucket: "dear-diare.firebasestorage.app",
+            messagingSenderId: "67882068070",
+            appId: "1:67882068070:android:e065d0b90f11a62ffc25a7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const diaryCol = collection(db, "diaries");
+
+        window.db = db;
+        window.diaryCol = diaryCol;
+        
+        const q = query(diaryCol, orderBy("serverTimestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            window.diaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            render();
+        });
+
+        window.postDiary = async () => {
+            const input = document.getElementById('diary-input');
+            if(!input.value.trim()) return;
+            const mode = document.body.className.includes('alastor') ? 'ALASTOR' : (document.body.className.includes('jaehee') ? 'JAEHEE' : 'VOX');
+            await addDoc(diaryCol, {
+                content: input.value,
+                music: document.getElementById('music-input').value,
+                author: document.getElementById('post-author').value,
+                date: new Date().toLocaleString('ko-KR'),
+                serverTimestamp: Date.now(),
+                mode: mode,
+                isPriv: document.getElementById('post-priv').checked,
+                comments: []
+            });
+            input.value = '';
+            document.getElementById('post-priv').checked = false;
+        };
+
+        window.deleteEntry = async (id) => {
+            if(confirm("기록을 파기하시겠습니까?")) await deleteDoc(doc(db, "diaries", id));
+        };
+    </script>
+
+    <style>
+        :root { --vox: #00E5FF; --ala: #ff3333; --jae: #FFB6C1; --bg: #050508; }
+        body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; }
+        .f-vox { font-family: 'Galmuri11', sans-serif !important; }
+        .f-ala { font-family: 'ChosunGs', serif !important; }
+        .f-jae { font-family: 'Gamja Flower', cursive !important; }
+        .vox-mode { color: var(--vox); font-family: 'Galmuri11', sans-serif; }
+        .alastor-mode { color: var(--ala); font-family: 'ChosunGs', serif; }
+        .jaehee-mode { color: var(--jae); font-family: 'Gamja Flower', cursive; }
+        #header { border: 2px solid var(--vox); padding: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.5); text-align: center; }
+        .alastor-mode #header { border-color: var(--ala); }
+        .jaehee-mode #header { border-color: var(--jae); }
+        .input-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .filter-row { display: flex; gap: 4px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 8px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
+        .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
+        .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
+        .vox-item { color: var(--vox); border-left-color: var(--vox); }
+        .ala-item { color: var(--ala); border-left-color: var(--ala); }
+        .jae-item { color: var(--jae); border-left-color: var(--jae); }
+        .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; }
+        .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
+        .action-bar { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
+        .btn-row { display: flex; gap: 5px; }
+        .icon-btn { flex: 1; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-family: inherit; font-size: 0.65rem; font-weight: bold; }
+        #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+        .capturing .action-bar, .capturing button { display: none !important; }
+    </style>
+</head>
+<body id="main" class="vox-mode">
+    <div id="header">
+        <div id="status-text">Ratings are through the roof</div>
+        <span style="font-size:1.8rem; font-weight:bold; display:block; margin-top:5px;" id="title-main">Vox</span>
+        <span style="font-size:0.9rem; opacity:0.7;" id="title-sub">BROADCAST NETWORK</span>
+    </div>
+
+    <div class="input-section">
+        <div class="filter-row">
+            <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
+        </div>
+        <input type="text" id="music-input" placeholder="Music: Artist - Title">
+        <div style="display:flex; align-items:center; gap:4px; font-size:0.7rem; color:#888;">
+            <input type="checkbox" id="post-priv" style="width:14px; height:14px;"> Private Post
+        </div>
+        <textarea id="diary-input" placeholder="Data input..."></textarea>
+        <button class="main-btn" onclick="postDiary()">TRANSMIT</button>
+        <button class="main-btn" onclick="toggleTheme()">SWITCH MODE</button>
+    </div>
+
+    <div id="feed"></div>
+
+    <div id="preview-modal">
+        <img id="preview-img" style="max-width: 100%; border: 1px solid currentColor; margin-bottom: 20px;">
+        <button class="main-btn" onclick="closeModal()">CLOSE</button>
+    </div>
+
+    <script>
+        function render() {
+            const feed = document.getElementById('feed');
+            if(!window.diaries) return;
+            feed.innerHTML = window.diaries.map((d) => `
+                <div class="entry ${getModeClass(d.mode)} ${getFontClass(d.mode)}" id="diary-${d.id}">
+                    <div class="author-info">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
+                    <div style="font-size:0.7rem; opacity:0.6; margin-bottom:5px;">${d.mode} CH | ${d.date}</div>
+                    ${d.music ? `<div style="font-size:0.7rem; margin-bottom:8px;">♪ ${d.music}</div>` : ''}
+                    <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Private content.' : d.content}</div>
+                    <div class="action-bar">
+                        <div class="btn-row">
+                            <button class="icon-btn" onclick="deleteEntry('${d.id}')">Delete</button>
+                            <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getModeClass(m) { return m === 'ALASTOR' ? 'ala-item' : (m === 'JAEHEE' ? 'jae-item' : 'vox-item'); }
+        function getFontClass(m) { return m === 'ALASTOR' ? 'f-ala' : (m === 'JAEHEE' ? 'f-jae' : 'f-vox'); }
+        
+        window.toggleTheme = () => {
+            const b = document.body;
+            const h = (st, m, s) => { 
+                document.getElementById('status-text').innerText = st;
+                document.getElementById('title-main').innerText = m;
+                document.getElementById('title-sub').innerText = s;
+            };
+            if(b.classList.contains('vox-mode')) { b.className = 'alastor-mode'; h("A pleasure to meet you", "Alastor", "THE RADIO DEMON STATION"); }
+            else if(b.classList.contains('alastor-mode')) { b.className = 'jaehee-mode'; h("Dear Diary,", "Jaehee", "PRIVATE CHANNEL"); }
+            else { b.className = 'vox-mode'; h("Ratings are through the roof", "Vox", "BROADCAST NETWORK"); }
+            render();
+        };
+
+        window.openCapture = (id) => {
+            const target = document.getElementById(`diary-${id}`);
+            target.classList.add('capturing');
+            html2canvas(target, { backgroundColor: '#050508', scale: 2 }).then(canvas => {
+                target.classList.remove('capturing');
+                document.getElementById('preview-img').src = canvas.toDataURL();
+                document.getElementById('preview-modal').style.display = 'flex';
+            });
+        };
+        window.closeModal = () => document.getElementById('preview-modal').style.display = 'none';
+    </script>
+</body>
+</html>
