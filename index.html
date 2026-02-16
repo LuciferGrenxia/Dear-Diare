@@ -27,14 +27,12 @@
         const db = getFirestore(app);
         const diaryCol = collection(db, "diaries");
 
-        // 서버 데이터를 실시간으로 로컬 변수와 동기화
         const q = query(diaryCol, orderBy("serverTimestamp", "desc"));
         onSnapshot(q, (snapshot) => {
             window.diaries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             render(); 
         });
 
-        // 원본 로직을 유지하면서 DB 저장 기능만 추가
         window.postDiary = async () => {
             const input = document.getElementById('diary-input');
             if(!input.value.trim()) return;
@@ -54,17 +52,11 @@
             input.value = ''; document.getElementById('post-priv').checked = false;
         };
 
-        window.dbUpdate = async (id, data) => {
-            await updateDoc(doc(db, "diaries", id), data);
-        };
-
-        window.dbDelete = async (id) => {
-            await deleteDoc(doc(db, "diaries", id));
-        };
+        window.dbUpdate = async (id, data) => { await updateDoc(doc(db, "diaries", id), data); };
+        window.dbDelete = async (id) => { await deleteDoc(doc(db, "diaries", id)); };
     </script>
 
     <style>
-        /* 재희님의 원본 스타일 (100% 동일하게 복구) */
         :root { --vox: #00E5FF; --ala: #ff3333; --jae: #FFB6C1; --bg: #050508; }
         body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; }
         .f-vox { font-family: 'Galmuri11', sans-serif !important; }
@@ -82,16 +74,10 @@
         select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 8px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
         .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
-        .vox-item { color: var(--vox); border-left-color: var(--vox); }
-        .ala-item { color: var(--ala); border-left-color: var(--ala); }
-        .jae-item { color: var(--jae); border-left-color: var(--jae); }
         .smart-priv-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: 1px solid currentColor; color: inherit; font-size: 0.6rem; cursor: pointer; padding: 3px 8px; font-family: inherit; }
         .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; outline: none; }
         .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
         .comment-area { margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
-        .comment-item { margin-bottom: 10px; }
-        .reply-item { margin-left: 15px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; margin-top: 5px; }
-        .re-reply-item { margin-left: 30px; border-left: 1px dotted rgba(255,255,255,0.2); padding-left: 8px; margin-top: 4px; font-size: 0.8rem; }
         .hidden-box { display: none; margin: 8px 0; border: 1px solid rgba(255,255,255,0.2); padding: 8px; }
         .input-row { display: flex; gap: 4px; align-items: center; width: 100%; }
         .ok-btn { width: 45px; height: 32px; background: transparent; border: 1px solid currentColor; color: inherit; font-size: 0.65rem; cursor: pointer; flex-shrink: 0; }
@@ -133,8 +119,8 @@
 
     <div class="input-section">
         <div class="filter-row">
-            <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
-            <select id="filter-author" onchange="render()"><option value="ALL">All Users</option><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
+            <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alastor">Alastor</option></select>
+            <select id="filter-author" onchange="render()"><option value="ALL">All Users</option><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alastor">Alastor</option></select>
             <select id="filter-year" onchange="render()"><option value="ALL">Year</option><option value="2026">2026</option><option value="2025">2025</option></select>
             <select id="filter-month" onchange="render()"><option value="ALL">Month</option><option value="1">1</option><option value="2">2</option><option value="12">12</option></select>
         </div>
@@ -152,7 +138,6 @@
     <div id="feed"></div>
 
     <script>
-        // 렌더링 및 로직 원본 그대로 복구
         const PW = "1206";
         const scripts = {
             vox: { lock: "내 시스템에 접근하겠다고?\n좋아, 암호를 대봐.", wrong: "하! 이 멍청한 놈.\n암호가 틀렸잖아.", del: "흥, 필요 없는 데이터는 삭제다.\n영구 파기하겠어.", edit: "로그를 수정하나?\n이번엔 좀 더 완벽하게 기록해봐.", copy: "완벽하게 수신했어!" },
@@ -172,13 +157,12 @@
                 .filter(d => yearF === 'ALL' || d.date.includes(yearF))
                 .filter(d => monthF === 'ALL' || d.date.split('.')[1]?.trim() === monthF)
                 .map((d) => `
-                <div class="entry ${getModeClass(d.mode)} ${getFontClass(d.mode)}" id="diary-${d.id}">
+                <div class="entry ${d.mode === 'ALASTOR' ? 'ala-item f-ala' : (d.mode === 'JAEHEE' ? 'jae-item f-jae' : 'vox-item f-vox')}" id="diary-${d.id}">
                     <button class="smart-priv-btn" onclick="handlePriv('${d.id}')">${d.isPriv ? 'Unlock' : 'Priv'}</button>
                     <div class="author-info">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
                     <div style="font-size:0.7rem; opacity:0.6; margin-bottom:5px;">${d.mode} CH | ${d.date}</div>
                     ${d.music ? `<div style="font-size:0.7rem; margin-bottom:8px;">♪ ${d.music}</div>` : ''}
                     <div id="content-${d.id}" class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Private content.' : d.content}</div>
-                    
                     <div class="comment-area">
                         ${(d.comments || []).map((c, ci) => `
                             <div class="comment-item">
@@ -188,20 +172,19 @@
                                 <button onclick="openPrompt('deleteComment', '${d.id}', ${ci})" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Del]</button>
                                 <div id="re-${d.id}-${ci}" class="hidden-box">
                                     <div class="input-row">
-                                        <select id="re-au-${d.id}-${ci}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
+                                        <select id="re-au-${d.id}-${ci}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alastor">Alastor</option></select>
                                         <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="font-size:0.7rem;" onkeypress="if(event.keyCode==13) addReply('${d.id}', ${ci})">
                                         <button class="ok-btn" onclick="addReply('${d.id}', ${ci})">OK</button>
                                     </div>
                                 </div>
                                 ${(c.replies || []).map((r, ri) => `
-                                    <div class="reply-item">
-                                        ㄴ <b>${r.author}:</b> <span>${r.text}</span>
+                                    <div class="reply-item">ㄴ <b>${r.author}:</b> <span>${r.text}</span>
                                         <button onclick="toggleBox('rr-${d.id}-${ci}-${ri}')" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Reply]</button>
                                         <button onclick="openPrompt('editReply', '${d.id}', ${ci}, ${ri})" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Edit]</button>
                                         <button onclick="openPrompt('deleteReply', '${d.id}', ${ci}, ${ri})" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Del]</button>
                                         <div id="rr-${d.id}-${ci}-${ri}" class="hidden-box">
                                             <div class="input-row">
-                                                <select id="rr-au-${d.id}-${ci}-${ri}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
+                                                <select id="rr-au-${d.id}-${ci}-${ri}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alastor">Alastor</option></select>
                                                 <input type="text" id="rr-in-${d.id}-${ci}-${ri}" placeholder="To Reply..." style="font-size:0.7rem;" onkeypress="if(event.keyCode==13) addReReply('${d.id}', ${ci}, ${ri})">
                                                 <button class="ok-btn" onclick="addReReply('${d.id}', ${ci}, ${ri})">OK</button>
                                             </div>
@@ -216,7 +199,6 @@
                             </div>
                         `).join('')}
                     </div>
-
                     <div class="action-bar">
                         <div class="btn-row">
                             <button class="icon-btn" onclick="broadcast('${d.id}')">Broadcast</button>
@@ -228,7 +210,7 @@
                     </div>
                     <div id="com-${d.id}" class="hidden-box">
                         <div class="input-row">
-                            <select id="com-au-${d.id}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
+                            <select id="com-au-${d.id}" style="width:65px; font-size:0.6rem;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alastor">Alastor</option></select>
                             <input type="text" id="com-in-${d.id}" placeholder="Comment..." style="font-size:0.7rem;" onkeypress="if(event.keyCode==13) addComment('${d.id}')">
                             <button class="ok-btn" onclick="addComment('${d.id}')">OK</button>
                         </div>
