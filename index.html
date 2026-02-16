@@ -63,29 +63,40 @@
 
     <style>
         :root { --vox: #00E5FF; --ala: #ff3333; --jae: #FFB6C1; --bg: #050508; }
-        body { background: var(--bg); color: white; margin: 0; padding: 20px; transition: 0.3s; word-break: break-all; overflow-x: hidden; font-family: 'Galmuri11', sans-serif; }
+        * { box-sizing: border-box; }
+        body { background: var(--bg); color: white; margin: 0; padding: 15px; transition: 0.3s; word-break: break-all; overflow-x: hidden; font-family: 'Galmuri11', sans-serif; }
+        
+        /* 폰트 설정 */
         .f-vox { font-family: 'Galmuri11', sans-serif !important; }
         .f-ala { font-family: 'ChosunGs', serif !important; }
         .f-jae { font-family: 'Gamja Flower', cursive !important; }
+
         .vox-mode { color: var(--vox); }
         .alastor-mode { color: var(--ala); }
         .jaehee-mode { color: var(--jae); }
-        #header { border: 2px solid var(--vox); padding: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.5); text-align: center; }
-        .alastor-mode #header { border-color: var(--ala); }
-        .jaehee-mode #header { border-color: var(--jae); }
-        select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 10px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
-        .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
-        .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
-        .entry-content { font-size: 1.15rem; line-height: 1.6; margin: 10px 0; }
-        .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
-        .comment-area { margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
-        .comment-item { margin-bottom: 10px; }
-        .reply-item { margin-left: 15px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; margin-top: 5px; font-size: 0.8rem; }
-        .hidden-box { display: none; margin: 8px 0; border: 1px solid rgba(255,255,255,0.2); padding: 8px; }
-        .action-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .icon-btn { flex: 1; min-width: 65px; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.65rem; font-family: inherit; }
+
+        #header { border: 2px solid currentColor; padding: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.5); text-align: center; }
+        
+        .input-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px; }
+        select, input, textarea { background: #000; color: inherit; border: 1px solid currentColor; padding: 12px; font-family: inherit; font-size: 0.9rem; outline: none; width: 100%; }
+        
+        .priv-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; padding: 5px 0; }
+        .priv-row input { width: 18px; height: 18px; margin: 0; }
+
+        .btn-group { display: flex; gap: 10px; }
+        .main-btn { flex: 1; height: 50px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; text-transform: uppercase; }
+
+        .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.03); padding: 15px; margin-bottom: 25px; }
+        .entry-content { font-size: 1.1rem; line-height: 1.6; margin: 12px 0; }
+        .locked { filter: blur(12px); opacity: 0.3; pointer-events: none; }
+
+        .action-bar { display: flex; gap: 8px; margin-top: 15px; }
+        .icon-btn { flex: 1; height: 38px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.75rem; font-family: inherit; }
+
+        .comment-area { margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
+        .hidden-box { display: none; margin-top: 10px; padding: 10px; border: 1px solid rgba(255,255,255,0.2); }
+        
         #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
-        .capturing .action-bar, .capturing button { display: none !important; }
     </style>
 </head>
 <body id="main" class="vox-mode">
@@ -98,24 +109,28 @@
     <div class="input-section">
         <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
         <input type="text" id="music-input" placeholder="Music: Artist - Title">
-        <label style="font-size:0.7rem; display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="post-priv"> Private Post</label>
-        <textarea id="diary-input" placeholder="Data input..."></textarea>
-        <button class="main-btn" onclick="postDiary()">TRANSMIT</button>
-        <button class="main-btn" onclick="toggleTheme()">SWITCH MODE</button>
+        <div class="priv-row">
+            <input type="checkbox" id="post-priv"> <span>Private Post</span>
+        </div>
+        <textarea id="diary-input" placeholder="Data input..." rows="4"></textarea>
+        <div class="btn-group">
+            <button class="main-btn" onclick="postDiary()">TRANSMIT</button>
+            <button class="main-btn" onclick="toggleTheme()">SWITCH</button>
+        </div>
     </div>
 
     <div id="feed"></div>
 
     <div id="preview-modal">
         <img id="preview-img" style="max-width: 100%; border: 1px solid currentColor; margin-bottom: 20px;">
-        <button class="main-btn" onclick="closeModal()" style="width: 120px;">CLOSE</button>
+        <button class="main-btn" onclick="closeModal()" style="max-width: 200px;">CLOSE</button>
     </div>
 
     <script>
         const scripts = {
-            vox: { del: "흥, 필요 없는 데이터는 삭제다.\n영구 파기하겠어.", copy: "완벽하게 수신했어!" },
-            ala: { del: "이 즐거운 기록을 정말 파기하실 건가요?\n정말 유감이네요!", copy: "정말 유쾌한 서신이군요!" },
-            jae: { del: "기록을 삭제하시겠습니까?", copy: "일기장에게." }
+            vox: { del: "흥, 필요 없는 데이터는 삭제다.\n영구 파기하겠어.", st: "Ratings are through the roof", m: "Vox", s: "BROADCAST NETWORK" },
+            ala: { del: "이 즐거운 기록을 정말 파기하실 건가요?\n정말 유감이네요!", st: "A pleasure to meet you", m: "Alastor", s: "THE RADIO DEMON STATION" },
+            jae: { del: "기록을 삭제하시겠습니까?", st: "Dear Diary,", m: "Jaehee", s: "PRIVATE CHANNEL" }
         };
 
         function getTheme() {
@@ -128,20 +143,21 @@
             if(!window.diaries) return;
             feed.innerHTML = window.diaries.map((d) => `
                 <div class="entry ${d.mode === 'ALASTOR' ? 'ala-item f-ala' : (d.mode === 'JAEHEE' ? 'jae-item f-jae' : 'vox-item f-vox')}" id="diary-${d.id}">
-                    <div style="font-size:0.7rem; opacity:0.6;">${d.mode} CH | ${d.date}</div>
-                    ${d.music ? `<div style="font-size:0.75rem; margin-bottom:5px;">♪ ${d.music}</div>` : ''}
+                    <div style="font-size:0.75rem; font-weight:bold;">WRITER: ${d.author}</div>
+                    <div style="font-size:0.7rem; opacity:0.6; margin-bottom:8px;">${d.mode} CH | ${d.date}</div>
+                    ${d.music ? `<div style="font-size:0.8rem; margin-bottom:10px;">♪ ${d.music}</div>` : ''}
                     <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'This content is encrypted.' : d.content}</div>
                     
                     <div class="comment-area">
                         ${(d.comments || []).map((c, ci) => `
-                            <div class="comment-item">
+                            <div style="margin-bottom:8px;">
                                 <b>${c.author}:</b> ${c.text}
-                                <button onclick="toggleBox('re-${d.id}-${ci}')" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Reply]</button>
+                                <button onclick="toggleBox('re-${d.id}-${ci}')" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer; opacity:0.7;">[Reply]</button>
                                 <div id="re-${d.id}-${ci}" class="hidden-box">
-                                    <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="width:60%; height:25px; font-size:0.7rem;">
-                                    <button onclick="addReply('${d.id}', ${ci})" style="height:25px; font-size:0.7rem;">OK</button>
+                                    <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="width:70%; height:30px;">
+                                    <button onclick="addReply('${d.id}', ${ci})" style="height:30px; border:1px solid currentColor; background:none; color:inherit;">OK</button>
                                 </div>
-                                ${(c.replies || []).map(r => `<div class="reply-item">ㄴ <b>${r.author}:</b> ${r.text}</div>`).join('')}
+                                ${(c.replies || []).map(r => `<div style="margin-left:15px; margin-top:4px; font-size:0.8rem; opacity:0.9;">ㄴ <b>${r.author}:</b> ${r.text}</div>`).join('')}
                             </div>
                         `).join('')}
                     </div>
@@ -149,11 +165,11 @@
                     <div class="action-bar">
                         <button class="icon-btn" onclick="toggleBox('com-${d.id}')">Comment</button>
                         <button class="icon-btn" onclick="deleteEntry('${d.id}')">Delete</button>
-                        <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
+                        <button class="icon-btn" onclick="openCapture('${d.id}')">Save</button>
                     </div>
                     <div id="com-${d.id}" class="hidden-box">
-                        <input type="text" id="com-in-${d.id}" placeholder="Comment..." style="width:70%;">
-                        <button onclick="addComment('${d.id}')" style="height:30px;">OK</button>
+                        <input type="text" id="com-in-${d.id}" placeholder="Comment..." style="width:75%;">
+                        <button onclick="addComment('${d.id}')" style="height:35px; border:1px solid currentColor; background:none; color:inherit;">OK</button>
                     </div>
                 </div>
             `).join('');
@@ -178,14 +194,15 @@
 
         window.toggleTheme = () => {
             const b = document.body;
-            const h = (st, m, s) => { 
-                document.getElementById('status-text').innerText = st;
-                document.getElementById('title-main').innerText = m;
-                document.getElementById('title-sub').innerText = s;
+            const h = (id) => {
+                const s = scripts[id];
+                document.getElementById('status-text').innerText = s.st;
+                document.getElementById('title-main').innerText = s.m;
+                document.getElementById('title-sub').innerText = s.s;
             };
-            if(b.classList.contains('vox-mode')) { b.className = 'alastor-mode'; h("A pleasure to meet you", "Alastor", "THE RADIO DEMON STATION"); }
-            else if(b.classList.contains('alastor-mode')) { b.className = 'jaehee-mode'; h("Dear Diary,", "Jaehee", "PRIVATE CHANNEL"); }
-            else { b.className = 'vox-mode'; h("Ratings are through the roof", "Vox", "BROADCAST NETWORK"); }
+            if(b.classList.contains('vox-mode')) { b.className = 'alastor-mode'; h('ala'); }
+            else if(b.classList.contains('alastor-mode')) { b.className = 'jaehee-mode'; h('jae'); }
+            else { b.className = 'vox-mode'; h('vox'); }
             render();
         };
 
