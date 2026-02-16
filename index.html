@@ -75,8 +75,11 @@
         .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
         .smart-priv-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: 1px solid currentColor; color: inherit; font-size: 0.6rem; cursor: pointer; padding: 3px 8px; font-family: inherit; }
-        .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; outline: none; }
-        .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
+        
+        /* 비밀글 블러 효과 수정 */
+        .entry-content { font-size: 1.2rem; line-height: 1.5; margin: 8px 0; padding: 5px; transition: filter 0.3s; }
+        .locked { filter: blur(8px); opacity: 0.5; pointer-events: none; user-select: none; }
+
         .comment-area { margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
         .hidden-box { display: none; margin: 8px 0; border: 1px solid rgba(255,255,255,0.2); padding: 8px; }
         .input-row { display: flex; gap: 4px; align-items: center; width: 100%; }
@@ -162,7 +165,7 @@
                     <div class="author-info">WRITER: ${d.author} ${d.isPriv ? '(Private)' : ''}</div>
                     <div style="font-size:0.7rem; opacity:0.6; margin-bottom:5px;">${d.mode} CH | ${d.date}</div>
                     ${d.music ? `<div style="font-size:0.7rem; margin-bottom:8px;">♪ ${d.music}</div>` : ''}
-                    <div id="content-${d.id}" class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Private content.' : d.content}</div>
+                    <div id="content-${d.id}" class="entry-content ${d.isPriv ? 'locked' : ''}">${d.content}</div>
                     <div class="comment-area">
                         ${(d.comments || []).map((c, ci) => `
                             <div class="comment-item">
