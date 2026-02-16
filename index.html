@@ -48,7 +48,7 @@
                 isPriv: document.getElementById('post-priv').checked,
                 comments: []
             });
-            input.value = ''; document.getElementById('post-priv').checked = false;
+            input.value = ''; document.getElementById('music-input').value = ''; document.getElementById('post-priv').checked = false;
         };
 
         window.saveComments = async (id, comments) => {
@@ -56,7 +56,8 @@
         };
 
         window.deleteEntry = async (id) => {
-            if(confirm(scripts[getTheme()].del)) await deleteDoc(doc(db, "diaries", id));
+            const t = getTheme();
+            if(confirm(scripts[t].del)) await deleteDoc(doc(db, "diaries", id));
         };
     </script>
 
@@ -73,16 +74,18 @@
         .alastor-mode #header { border-color: var(--ala); }
         .jaehee-mode #header { border-color: var(--jae); }
         select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 10px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
-        .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; }
+        .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; text-transform: uppercase; }
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
-        .entry-content { font-size: 1.1rem; line-height: 1.6; margin: 10px 0; }
+        .entry-content { font-size: 1.15rem; line-height: 1.6; margin: 10px 0; }
         .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
         .comment-area { margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
-        .reply-item { margin-left: 15px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; margin-top: 5px; }
+        .comment-item { margin-bottom: 10px; }
+        .reply-item { margin-left: 15px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; margin-top: 5px; font-size: 0.8rem; }
         .hidden-box { display: none; margin: 8px 0; border: 1px solid rgba(255,255,255,0.2); padding: 8px; }
-        .action-bar { display: flex; gap: 5px; margin-top: 10px; }
-        .icon-btn { flex: 1; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.65rem; font-family: inherit; }
-        #custom-prompt { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; z-index: 4000; text-align: center; border: 2px solid currentColor; background: #000; min-width: 280px; }
+        .action-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .icon-btn { flex: 1; min-width: 65px; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.65rem; font-family: inherit; }
+        #preview-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; padding: 20px; }
+        .capturing .action-bar, .capturing button { display: none !important; }
     </style>
 </head>
 <body id="main" class="vox-mode">
@@ -95,13 +98,18 @@
     <div class="input-section">
         <select id="post-author"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option><option value="Alaster">Alaster</option></select>
         <input type="text" id="music-input" placeholder="Music: Artist - Title">
-        <label style="font-size:0.7rem;"><input type="checkbox" id="post-priv"> Private Post</label>
+        <label style="font-size:0.7rem; display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="post-priv"> Private Post</label>
         <textarea id="diary-input" placeholder="Data input..."></textarea>
         <button class="main-btn" onclick="postDiary()">TRANSMIT</button>
         <button class="main-btn" onclick="toggleTheme()">SWITCH MODE</button>
     </div>
 
     <div id="feed"></div>
+
+    <div id="preview-modal">
+        <img id="preview-img" style="max-width: 100%; border: 1px solid currentColor; margin-bottom: 20px;">
+        <button class="main-btn" onclick="closeModal()" style="width: 120px;">CLOSE</button>
+    </div>
 
     <script>
         const scripts = {
@@ -121,28 +129,31 @@
             feed.innerHTML = window.diaries.map((d) => `
                 <div class="entry ${d.mode === 'ALASTOR' ? 'ala-item f-ala' : (d.mode === 'JAEHEE' ? 'jae-item f-jae' : 'vox-item f-vox')}" id="diary-${d.id}">
                     <div style="font-size:0.7rem; opacity:0.6;">${d.mode} CH | ${d.date}</div>
-                    <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Encrypted.' : d.content}</div>
+                    ${d.music ? `<div style="font-size:0.75rem; margin-bottom:5px;">♪ ${d.music}</div>` : ''}
+                    <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'This content is encrypted.' : d.content}</div>
+                    
                     <div class="comment-area">
                         ${(d.comments || []).map((c, ci) => `
                             <div class="comment-item">
                                 <b>${c.author}:</b> ${c.text}
-                                <button onclick="toggleBox('re-${d.id}-${ci}')" style="background:none; border:none; color:inherit; font-size:0.6rem;">[Reply]</button>
+                                <button onclick="toggleBox('re-${d.id}-${ci}')" style="background:none; border:none; color:inherit; font-size:0.6rem; cursor:pointer;">[Reply]</button>
                                 <div id="re-${d.id}-${ci}" class="hidden-box">
-                                    <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="width:70%;">
-                                    <button onclick="addReply('${d.id}', ${ci})">OK</button>
+                                    <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="width:60%; height:25px; font-size:0.7rem;">
+                                    <button onclick="addReply('${d.id}', ${ci})" style="height:25px; font-size:0.7rem;">OK</button>
                                 </div>
                                 ${(c.replies || []).map(r => `<div class="reply-item">ㄴ <b>${r.author}:</b> ${r.text}</div>`).join('')}
                             </div>
                         `).join('')}
                     </div>
+
                     <div class="action-bar">
                         <button class="icon-btn" onclick="toggleBox('com-${d.id}')">Comment</button>
                         <button class="icon-btn" onclick="deleteEntry('${d.id}')">Delete</button>
                         <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
                     </div>
                     <div id="com-${d.id}" class="hidden-box">
-                        <input type="text" id="com-in-${d.id}" placeholder="Comment...">
-                        <button onclick="addComment('${d.id}')">OK</button>
+                        <input type="text" id="com-in-${d.id}" placeholder="Comment..." style="width:70%;">
+                        <button onclick="addComment('${d.id}')" style="height:30px;">OK</button>
                     </div>
                 </div>
             `).join('');
@@ -150,7 +161,7 @@
 
         window.addComment = async (id) => {
             const text = document.getElementById(`com-in-${id}`).value;
-            if(!text) return;
+            if(!text.trim()) return;
             const entry = window.diaries.find(d => d.id === id);
             const comments = [...(entry.comments || []), { author: document.getElementById('post-author').value, text, replies: [] }];
             await window.saveComments(id, comments);
@@ -158,8 +169,9 @@
 
         window.addReply = async (id, ci) => {
             const text = document.getElementById(`re-in-${id}-${ci}`).value;
-            if(!text) return;
+            if(!text.trim()) return;
             const entry = window.diaries.find(d => d.id === id);
+            if(!entry.comments[ci].replies) entry.comments[ci].replies = [];
             entry.comments[ci].replies.push({ author: document.getElementById('post-author').value, text });
             await window.saveComments(id, entry.comments);
         };
@@ -178,7 +190,16 @@
         };
 
         window.toggleBox = (id) => { const b = document.getElementById(id); b.style.display = b.style.display === 'block' ? 'none' : 'block'; };
-        window.openCapture = (id) => { /* 캡처 로직 동일 */ };
+        window.openCapture = (id) => {
+            const target = document.getElementById(`diary-${id}`);
+            target.classList.add('capturing');
+            html2canvas(target, { backgroundColor: '#050508', scale: 2 }).then(canvas => {
+                target.classList.remove('capturing');
+                document.getElementById('preview-img').src = canvas.toDataURL();
+                document.getElementById('preview-modal').style.display = 'flex';
+            });
+        };
+        window.closeModal = () => document.getElementById('preview-modal').style.display = 'none';
     </script>
 </body>
 </html>
