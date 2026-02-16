@@ -27,7 +27,6 @@
         const db = getFirestore(app);
         const diaryCol = collection(db, "diaries");
         window.db = db;
-        window.diaryCol = diaryCol;
 
         const q = query(diaryCol, orderBy("serverTimestamp", "desc"));
         onSnapshot(q, (snapshot) => {
@@ -35,7 +34,6 @@
             render();
         });
 
-        // --- 핵심 기능들 서버 연동 ---
         window.postDiary = async () => {
             const input = document.getElementById('diary-input');
             if(!input.value.trim()) return;
@@ -53,21 +51,12 @@
             input.value = ''; document.getElementById('post-priv').checked = false;
         };
 
-        window.addComment = async (id) => {
-            const auth = document.getElementById(`com-au-${id}`).value;
-            const text = document.getElementById(`com-in-${id}`).value;
-            if(!text.trim()) return;
-            const entry = window.diaries.find(d => d.id === id);
-            const newComments = [...(entry.comments || []), { author: auth, text, replies: [] }];
-            await updateDoc(doc(db, "diaries", id), { comments: newComments });
+        window.saveComments = async (id, comments) => {
+            await updateDoc(doc(db, "diaries", id), { comments });
         };
 
         window.deleteEntry = async (id) => {
-            if(confirm("기록을 파기하시겠습니까?")) await deleteDoc(doc(db, "diaries", id));
-        };
-
-        window.updateEntry = async (id, newContent) => {
-            await updateDoc(doc(db, "diaries", id), { content: newContent });
+            if(confirm(scripts[getTheme()].del)) await deleteDoc(doc(db, "diaries", id));
         };
     </script>
 
@@ -83,19 +72,16 @@
         #header { border: 2px solid var(--vox); padding: 15px; margin-bottom: 25px; background: rgba(0,0,0,0.5); text-align: center; }
         .alastor-mode #header { border-color: var(--ala); }
         .jaehee-mode #header { border-color: var(--jae); }
-        .input-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
         select, input, textarea { background: #000; color: #fff; border: 1px solid #444; padding: 10px; font-family: inherit; font-size: 0.8rem; outline: none; width: 100%; box-sizing: border-box; }
         .main-btn { height: 45px; background: transparent; color: inherit; border: 2px solid currentColor; cursor: pointer; font-family: inherit; font-size: 1rem; font-weight: bold; margin-top: 5px; }
         .entry { border-left: 4px solid currentColor; background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 20px; position: relative; }
-        .vox-item { border-left-color: var(--vox); color: var(--vox); }
-        .ala-item { border-left-color: var(--ala); color: var(--ala); }
-        .jae-item { border-left-color: var(--jae); color: var(--jae); }
         .entry-content { font-size: 1.1rem; line-height: 1.6; margin: 10px 0; }
         .locked { filter: blur(15px); opacity: 0.2; pointer-events: none; }
         .comment-area { margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 0.85rem; }
+        .reply-item { margin-left: 15px; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; margin-top: 5px; }
         .hidden-box { display: none; margin: 8px 0; border: 1px solid rgba(255,255,255,0.2); padding: 8px; }
-        .action-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-        .icon-btn { flex: 1; min-width: 60px; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.65rem; font-family: inherit; }
+        .action-bar { display: flex; gap: 5px; margin-top: 10px; }
+        .icon-btn { flex: 1; height: 35px; background: transparent; border: 1px solid currentColor; color: inherit; cursor: pointer; font-size: 0.65rem; font-family: inherit; }
         #custom-prompt { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; z-index: 4000; text-align: center; border: 2px solid currentColor; background: #000; min-width: 280px; }
     </style>
 </head>
@@ -118,15 +104,36 @@
     <div id="feed"></div>
 
     <script>
+        const scripts = {
+            vox: { del: "흥, 필요 없는 데이터는 삭제다.\n영구 파기하겠어.", copy: "완벽하게 수신했어!" },
+            ala: { del: "이 즐거운 기록을 정말 파기하실 건가요?\n정말 유감이네요!", copy: "정말 유쾌한 서신이군요!" },
+            jae: { del: "기록을 삭제하시겠습니까?", copy: "일기장에게." }
+        };
+
+        function getTheme() {
+            const b = document.body.className;
+            return b.includes('alastor') ? 'ala' : (b.includes('jaehee') ? 'jae' : 'vox');
+        }
+
         function render() {
             const feed = document.getElementById('feed');
             if(!window.diaries) return;
             feed.innerHTML = window.diaries.map((d) => `
-                <div class="entry ${getModeClass(d.mode)} ${getFontClass(d.mode)}" id="diary-${d.id}">
+                <div class="entry ${d.mode === 'ALASTOR' ? 'ala-item f-ala' : (d.mode === 'JAEHEE' ? 'jae-item f-jae' : 'vox-item f-vox')}" id="diary-${d.id}">
                     <div style="font-size:0.7rem; opacity:0.6;">${d.mode} CH | ${d.date}</div>
                     <div class="entry-content ${d.isPriv ? 'locked' : ''}">${d.isPriv ? 'Encrypted.' : d.content}</div>
                     <div class="comment-area">
-                        ${(d.comments || []).map(c => `<div style="margin-bottom:5px;"><b>${c.author}:</b> ${c.text}</div>`).join('')}
+                        ${(d.comments || []).map((c, ci) => `
+                            <div class="comment-item">
+                                <b>${c.author}:</b> ${c.text}
+                                <button onclick="toggleBox('re-${d.id}-${ci}')" style="background:none; border:none; color:inherit; font-size:0.6rem;">[Reply]</button>
+                                <div id="re-${d.id}-${ci}" class="hidden-box">
+                                    <input type="text" id="re-in-${d.id}-${ci}" placeholder="Reply..." style="width:70%;">
+                                    <button onclick="addReply('${d.id}', ${ci})">OK</button>
+                                </div>
+                                ${(c.replies || []).map(r => `<div class="reply-item">ㄴ <b>${r.author}:</b> ${r.text}</div>`).join('')}
+                            </div>
+                        `).join('')}
                     </div>
                     <div class="action-bar">
                         <button class="icon-btn" onclick="toggleBox('com-${d.id}')">Comment</button>
@@ -134,19 +141,44 @@
                         <button class="icon-btn" onclick="openCapture('${d.id}')">Save Image</button>
                     </div>
                     <div id="com-${d.id}" class="hidden-box">
-                        <select id="com-au-${d.id}" style="width:70px;"><option value="Jaehee">Jaehee</option><option value="Vox">Vox</option></select>
                         <input type="text" id="com-in-${d.id}" placeholder="Comment...">
-                        <button onclick="addComment('${d.id}')" style="color:inherit; background:none; border:1px solid currentColor; padding:5px;">OK</button>
+                        <button onclick="addComment('${d.id}')">OK</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        function getModeClass(m) { return m === 'ALASTOR' ? 'ala-item' : (m === 'JAEHEE' ? 'jae-item' : 'vox-item'); }
-        function getFontClass(m) { return m === 'ALASTOR' ? 'f-ala' : (m === 'JAEHEE' ? 'f-jae' : 'f-vox'); }
-        window.toggleTheme = () => { /* 테마 변경 로직 (기존과 동일) */ };
+        window.addComment = async (id) => {
+            const text = document.getElementById(`com-in-${id}`).value;
+            if(!text) return;
+            const entry = window.diaries.find(d => d.id === id);
+            const comments = [...(entry.comments || []), { author: document.getElementById('post-author').value, text, replies: [] }];
+            await window.saveComments(id, comments);
+        };
+
+        window.addReply = async (id, ci) => {
+            const text = document.getElementById(`re-in-${id}-${ci}`).value;
+            if(!text) return;
+            const entry = window.diaries.find(d => d.id === id);
+            entry.comments[ci].replies.push({ author: document.getElementById('post-author').value, text });
+            await window.saveComments(id, entry.comments);
+        };
+
+        window.toggleTheme = () => {
+            const b = document.body;
+            const h = (st, m, s) => { 
+                document.getElementById('status-text').innerText = st;
+                document.getElementById('title-main').innerText = m;
+                document.getElementById('title-sub').innerText = s;
+            };
+            if(b.classList.contains('vox-mode')) { b.className = 'alastor-mode'; h("A pleasure to meet you", "Alastor", "THE RADIO DEMON STATION"); }
+            else if(b.classList.contains('alastor-mode')) { b.className = 'jaehee-mode'; h("Dear Diary,", "Jaehee", "PRIVATE CHANNEL"); }
+            else { b.className = 'vox-mode'; h("Ratings are through the roof", "Vox", "BROADCAST NETWORK"); }
+            render();
+        };
+
         window.toggleBox = (id) => { const b = document.getElementById(id); b.style.display = b.style.display === 'block' ? 'none' : 'block'; };
-        window.openCapture = (id) => { /* 캡처 로직 (기존과 동일) */ };
+        window.openCapture = (id) => { /* 캡처 로직 동일 */ };
     </script>
 </body>
 </html>
